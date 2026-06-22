@@ -151,10 +151,11 @@ namespace user {
   template <Dimension D, int N>
   struct InitFields {
     WaveEntry<D> waves[N];
+    real_t       bg_Bguide;
 
     InitFields() = default;
 
-    explicit InitFields(const WaveEntry<D> (&w)[N]) {
+    explicit InitFields(const WaveEntry<D> (&w)[N], real_t bg_B = 0.0) : bg_Bguide { bg_B } {
       for (int i = 0; i < N; ++i) waves[i] = w[i];
     }
 
@@ -186,7 +187,7 @@ namespace user {
     Inline auto bx3(const coord_t<D>& x) const -> real_t {
       real_t val = ZERO;
       for (int i = 0; i < N; ++i) val += waves[i].bx3(x);
-      return val;
+      return val + bg_Bguide;
     }
   }; // struct InitFields
 
@@ -241,7 +242,7 @@ namespace user {
     // Build once, use for both
     WaveEntry<D> entries[N_WAVES];
     buildWaveEntries<D, N_WAVES>(p, entries);
-    init_flds   = InitFields<D, N_WAVES>(entries);
+    init_flds   = InitFields<D, N_WAVES>(entries, p.template get<real_t>("setup.bg_Bguide", 0.0));
     ext_current = ExternalCurrent<D, N_WAVES>(entries);
   }
 
