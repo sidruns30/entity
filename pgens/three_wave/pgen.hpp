@@ -136,7 +136,7 @@ namespace user {
           real_t k_dot_r   = waves[i].k[0] * x_Ph[0] +
                              waves[i].k[1] * x_Ph[1] +
                              waves[i].k[2] * x_Ph[2];
-          real_t cos_phase = math::cos(k_dot_r + waves[i].phase);
+          real_t cos_phase = math::cos( waves[i].phase_at(x_Ph));
           real_t k_perp    = math::sqrt(waves[i].k[0] * waves[i].k[0] +
                                         waves[i].k[1] * waves[i].k[1]);
           real_t sign_kz   = (waves[i].k[2] >= ZERO) ? ONE : -ONE;
@@ -248,7 +248,7 @@ namespace user {
 
   inline void InitPrtls(Domain<S, M>& local_domain) {
     const auto temperature = params.template get<real_t>("setup.temperature", 0.001);
-    const auto energy_dist = arch::Maxwellian<S, M>(
+    const auto energy_dist = arch::energy_dist::Maxwellian<M::Dim, M::CoordType>(
                                 local_domain.mesh.metric, 
                                 local_domain.random_pool(), 
                                 temperature);
