@@ -249,15 +249,14 @@ namespace user {
   inline void InitPrtls(Domain<S, M>& local_domain) {
     const auto temperature = params.template get<real_t>("setup.temperature", 0.001);
     const auto energy_dist = arch::energy_dist::Maxwellian<M::Dim, M::CoordType>(
-                                local_domain.mesh.metric, 
                                 local_domain.random_pool(), 
                                 temperature);
-  arch::InjectUniform<S, M, decltype(energy_dist), decltype(energy_dist)>(
-                        params,
-                        local_domain,
-                        { 1, 2 },
-                        { energy_dist, energy_dist },
-                        1.0); 
+    arch::InjectUniform<S, M, decltype(energy_dist), decltype(energy_dist)>(
+                          params,
+                          local_domain,
+                          { 1, 2 },
+                          { energy_dist, energy_dist },
+                          1.0); 
     }
 
   }; // struct PGen
