@@ -220,12 +220,12 @@ namespace user {
     , metadomain { m }
     , init_flds {}
     , ext_current {} 
-    , Lx { global_domain.mesh().extent(in::x1).second -
-             global_domain.mesh().extent(in::x1).first }
-    , Ly { global_domain.mesh().extent(in::x2).second -
-             global_domain.mesh().extent(in::x2).first }
-    , Lz { global_domain.mesh().extent(in::x3).second -
-             global_domain.mesh().extent(in::x3).first }
+    , Lx { m.mesh().extent(in::x1).second -
+             m.mesh().extent(in::x1).first }
+    , Ly { m.mesh().extent(in::x2).second -
+             m.mesh().extent(in::x2).first }
+    , Lz { m.mesh().extent(in::x3).second -
+             m.mesh().extent(in::x3).first }
     {
     // Build once, use for both
     WaveEntry<D> entries[N_WAVES];
