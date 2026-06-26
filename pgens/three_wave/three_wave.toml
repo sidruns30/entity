@@ -1,14 +1,14 @@
 [simulation]
   name    = "three_wave"
   engine  = "srpic"
-  runtime = 10000.0
+  runtime = 100.0
 
   [simulation.domain]
     decomposition = [-1, -1, -1]
 
 [grid]
-  resolution = [200, 200, 200]
-  extent     = [[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]]
+  resolution = [512, 512, 512]
+  extent     = [[0.0, 512.0], [0.0, 512.0], [0.0, 512.0]]
 
   [grid.metric]
     metric = "minkowski"
@@ -18,8 +18,8 @@
     particles = [["PERIODIC"], ["PERIODIC"], ["PERIODIC"]]
 
 [scales]
-  larmor0    = 0.00003333
-  skindepth0 = 0.0000625
+  larmor0    = 0.5
+  skindepth0 = 5.0
 
 [algorithms]
   current_filters = 8
@@ -28,19 +28,19 @@
     CFL = 0.5
 
 [particles]
-  ppc0 = 2.5
+  ppc0 = 5.0
 
   [[particles.species]]
     label    = "e-"
     mass     = 1.0
     charge   = -1.0
-    maxnpart = 1e7
+    maxnpart = 1e8
 
   [[particles.species]]
     label    = "e+"
     mass     = 1.0
     charge   = 1.0
-    maxnpart = 1e7
+    maxnpart = 1e8
 
 [setup]
   temperature = 1e-4
@@ -52,20 +52,18 @@
   wave_kx    = [10.0,  5.0,  5.0 ]
   wave_ky    = [0.0,  -5.0,  5.0 ]
   wave_kz    = [0.0,  5.0,  -5.0 ]
-  wave_amp   = [3000.0,  300.0,  300.0]
+  wave_amp   = [0.3,  0.,  0.0]
   wave_phase = [0.0,  0.4, 0.7]
-
-  bg_Bguide  = 30000.0
 
 [output]
   format        = "bpfile"
-  interval_time = 2000.0
+  interval_time = 10.0
 
   [output.fields]
     quantities = ["N_1", "N_2", "E", "B", "J"]
 
   [output.particles]
-    stride = 5
+    stride = 10
 
   [output.spectra]
     enable = true
