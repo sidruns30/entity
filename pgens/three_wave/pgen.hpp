@@ -55,8 +55,11 @@ namespace user {
       real_t cp = math::cos(phase_at(x_Ph));
       if (type == Type::FMS) {
         return amplitude * cp * kph[1];
-      } else {
+      } else if (type == Type::AW) {
         return amplitude * cp * kph[0];
+      }
+      else {
+        return ZERO;
       }
     }
 
@@ -66,8 +69,11 @@ namespace user {
       real_t cp = math::cos(phase_at(x_Ph));
       if (type == Type::FMS) {
         return -amplitude * cp * kph[0];
-      } else {
+      } else if (type == Type::AW) {
         return amplitude * cp * kph[1];
+      }
+      else {
+        return ZERO;
       }
     }
 
@@ -83,9 +89,12 @@ namespace user {
       if (type == Type::FMS) {
         real_t cos_theta = k[2] / kn;
         return amplitude * cp * kph[0] * cos_theta;
-      } else {
+      } else if (type == Type::AW) {
         real_t sign_kz = (k[2] >= ZERO) ? ONE : -ONE;
         return -amplitude * cp * kph[1] * sign_kz;
+      }
+      else {
+        return ZERO;
       }
     }
 
@@ -97,9 +106,12 @@ namespace user {
       if (type == Type::FMS) {
         real_t cos_theta = k[2] / kn;
         return amplitude * cp * kph[1] * cos_theta;
-      } else {
+      } else if (type == Type::AW) {
         real_t sign_kz = (k[2] >= ZERO) ? ONE : -ONE;
         return amplitude * cp * kph[0] * sign_kz;
+      }
+      else {
+        return ZERO;
       }
     }
 
@@ -110,52 +122,22 @@ namespace user {
         real_t cos_theta = k[2] / kn;
         real_t sin_theta = math::sqrt(ONE - cos_theta * cos_theta);
         return -amplitude * cp * sin_theta;
-      } else {
+      } else if (type == Type::AW) {
         return ZERO;
       }
+      else {
+        return ZERO;
+        }
     }
   }; // struct WaveEntry
-
-  template <Dimension D, int N>
-  struct ExternalCurrent {
-    WaveEntry<D> waves[N];
-
-    ExternalCurrent() = default;
-
-    explicit ExternalCurrent(const WaveEntry<D> (&w)[N]) {
-      for (int i = 0; i < N; ++i) waves[i] = w[i];
-    }
-
-    Inline auto jx1(const coord_t<D>&) const -> real_t { return ZERO; }
-    Inline auto jx2(const coord_t<D>&) const -> real_t { return ZERO; }
-
-    Inline auto jx3(const coord_t<D>& x_Ph) const -> real_t {
-      real_t jx3_tot = ZERO;
-      for (int i = 0; i < N; ++i) {
-        if (waves[i].type == WaveEntry<D>::Type::AW) {
-          real_t k_dot_r   = waves[i].k[0] * x_Ph[0] +
-                             waves[i].k[1] * x_Ph[1] +
-                             waves[i].k[2] * x_Ph[2];
-          real_t cos_phase = math::cos( waves[i].phase_at(x_Ph));
-          real_t k_perp    = math::sqrt(waves[i].k[0] * waves[i].k[0] +
-                                        waves[i].k[1] * waves[i].k[1]);
-          real_t sign_kz   = (waves[i].k[2] >= ZERO) ? ONE : -ONE;
-          jx3_tot         += k_perp * waves[i].amplitude * cos_phase * sign_kz;
-        }
-      }
-      return jx3_tot;
-    }
-  }; // struct ExternalCurrent
 
 
   template <Dimension D, int N>
   struct InitFields {
     WaveEntry<D> waves[N];
-    real_t       bg_Bguide;
-
     InitFields() = default;
 
-    explicit InitFields(const WaveEntry<D> (&w)[N], real_t bg_B = 0.0) : bg_Bguide { bg_B } {
+    explicit InitFields(const WaveEntry<D> (&w)[N]) {
       for (int i = 0; i < N; ++i) waves[i] = w[i];
     }
 
@@ -187,13 +169,13 @@ namespace user {
     Inline auto bx3(const coord_t<D>& x) const -> real_t {
       real_t val = ZERO;
       for (int i = 0; i < N; ++i) val += waves[i].bx3(x);
-      return val + bg_Bguide;
+      return val + 1.0;
     }
   }; // struct InitFields
 
   // Store wave entries from the input file
   template <Dimension D, int N>
-  auto buildWaveEntries(const SimulationParams& p, WaveEntry<D> (&out)[N]) -> void {
+  auto buildWaveEntries(const SimulationParams& p, WaveEntry<D> (&out)[N], real_t Lx, real_t Ly, real_t Lz) -> void {
     auto wave_types        = p.template get<std::vector<int>>("setup.wave_type");
     auto wave_kxs          = p.template get<std::vector<real_t>>("setup.wave_kx");
     auto wave_kys          = p.template get<std::vector<real_t>>("setup.wave_ky");
@@ -204,9 +186,9 @@ namespace user {
     for (int i = 0; i < N; ++i) {
       out[i].type      = (wave_types[i] == 0) ? WaveEntry<D>::Type::FMS
                                                : WaveEntry<D>::Type::AW;
-      out[i].k[0]      = constant::TWO_PI * wave_kxs[i];
-      out[i].k[1]      = constant::TWO_PI * wave_kys[i];
-      out[i].k[2]      = constant::TWO_PI * wave_kzs[i];
+      out[i].k[0]      = constant::TWO_PI * wave_kxs[i] / Lx;
+      out[i].k[1]      = constant::TWO_PI * wave_kys[i] / Ly;
+      out[i].k[2]      = constant::TWO_PI * wave_kzs[i] / Lz;
       out[i].phase     = constant::TWO_PI * wave_phases[i];
       out[i].amplitude = wave_amps[i];
     }
@@ -227,7 +209,7 @@ namespace user {
 
     const SimulationParams& params;
     Metadomain<S, M>&       metadomain;
-
+    const real_t                     Lx, Ly, Lz;
     static constexpr int N_WAVES = 3;
 
     InitFields<D, N_WAVES>      init_flds;
@@ -237,12 +219,18 @@ namespace user {
     : params { p }
     , metadomain { m }
     , init_flds {}
-    , ext_current {} {
-
+    , ext_current {} 
+    , Lx { global_domain.mesh().extent(in::x1).second -
+             global_domain.mesh().extent(in::x1).first }
+    , Ly { global_domain.mesh().extent(in::x2).second -
+             global_domain.mesh().extent(in::x2).first }
+    , Lz { global_domain.mesh().extent(in::x3).second -
+             global_domain.mesh().extent(in::x3).first }
+    {
     // Build once, use for both
     WaveEntry<D> entries[N_WAVES];
-    buildWaveEntries<D, N_WAVES>(p, entries);
-    init_flds   = InitFields<D, N_WAVES>(entries, p.template get<real_t>("setup.bg_Bguide", 0.0));
+    buildWaveEntries<D, N_WAVES>(p, entries, Lx, Ly, Lz);
+    init_flds   = InitFields<D, N_WAVES>(entries);
     ext_current = ExternalCurrent<D, N_WAVES>(entries);
   }
 
