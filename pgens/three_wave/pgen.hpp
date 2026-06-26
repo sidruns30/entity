@@ -213,13 +213,11 @@ namespace user {
     static constexpr int N_WAVES = 3;
 
     InitFields<D, N_WAVES>      init_flds;
-    ExternalCurrent<D, N_WAVES> ext_current;
 
   PGen(const SimulationParams& p, Metadomain<S, M>& m)
     : params { p }
     , metadomain { m }
     , init_flds {}
-    , ext_current {} 
     , Lx { m.mesh().extent(in::x1).second -
              m.mesh().extent(in::x1).first }
     , Ly { m.mesh().extent(in::x2).second -
@@ -231,7 +229,6 @@ namespace user {
     WaveEntry<D> entries[N_WAVES];
     buildWaveEntries<D, N_WAVES>(p, entries, Lx, Ly, Lz);
     init_flds   = InitFields<D, N_WAVES>(entries);
-    ext_current = ExternalCurrent<D, N_WAVES>(entries);
   }
 
   inline void InitPrtls(Domain<S, M>& local_domain) {
