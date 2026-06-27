@@ -191,6 +191,11 @@ namespace user {
       out[i].k[2]      = constant::TWO_PI * wave_kzs[i] / Lz;
       out[i].phase     = constant::TWO_PI * wave_phases[i];
       out[i].amplitude = wave_amps[i];
+
+      // Print to output what wave, wavevector, amplitude, and phase were set for each wave
+      std::cout << "Wave " << i << ": Type = " << ((out[i].type == WaveEntry<D>::Type::FMS) ? "FMS" : "AW")
+                << ", k = (" << out[i].k[0] << ", " << out[i].k[1] << ", " << out[i].k[2] << ")"
+                << ", amplitude = " << out[i].amplitude << ", phase = " << out[i].phase << std::endl;
     }
   }
 
