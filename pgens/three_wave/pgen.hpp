@@ -29,6 +29,7 @@ namespace user {
     real_t k[3];
     real_t amplitude;
     real_t phase;
+    static constexpr real_t SMALL { static_cast<real_t>(1e-12) };
 
     Inline auto norm() const -> real_t {
       auto k_norm = ZERO;
@@ -37,9 +38,9 @@ namespace user {
     }
 
     Inline auto kperp_hat(real_t out[3]) const -> void {
-      real_t k_norm = norm();
-      out[0] = k[0] / k_norm;
-      out[1] = k[1] / k_norm;
+      real_t k_perp_norm = math::sqrt(k[0] * k[0] + k[1] * k[1]);
+      out[0] = k[0] / (k_perp_norm + SMALL);
+      out[1] = k[1] / (k_perp_norm + SMALL);
       out[2] = ZERO;
     }
 
@@ -87,7 +88,7 @@ namespace user {
       real_t cp    = math::cos(phase_at(x_Ph));
       real_t kn    = norm();
       if (type == Type::FMS) {
-        real_t cos_theta = k[2] / kn;
+        real_t cos_theta = k[2] / (kn + SMALL);
         return amplitude * cp * kph[0] * cos_theta;
       } else if (type == Type::AW) {
         real_t sign_kz = (k[2] >= ZERO) ? ONE : -ONE;
@@ -104,7 +105,7 @@ namespace user {
       real_t cp    = math::cos(phase_at(x_Ph));
       real_t kn    = norm();
       if (type == Type::FMS) {
-        real_t cos_theta = k[2] / kn;
+        real_t cos_theta = k[2] / (kn + SMALL);
         return amplitude * cp * kph[1] * cos_theta;
       } else if (type == Type::AW) {
         real_t sign_kz = (k[2] >= ZERO) ? ONE : -ONE;
@@ -119,7 +120,7 @@ namespace user {
       real_t cp = math::cos(phase_at(x_Ph));
       real_t kn = norm();
       if (type == Type::FMS) {
-        real_t cos_theta = k[2] / kn;
+        real_t cos_theta = k[2] / (kn + SMALL);
         real_t sin_theta = math::sqrt(ONE - cos_theta * cos_theta);
         return -amplitude * cp * sin_theta;
       } else if (type == Type::AW) {
@@ -151,11 +152,6 @@ namespace user {
       for (int i = 0; i < N; ++i) val += waves[i].ex2(x);
       return val;
     }
-    Inline auto ex3(const coord_t<D>& x) const -> real_t {
-      real_t val = ZERO;
-      for (int i = 0; i < N; ++i) val += waves[i].ex3(x);
-      return val;
-    }
     Inline auto bx1(const coord_t<D>& x) const -> real_t {
       real_t val = ZERO;
       for (int i = 0; i < N; ++i) val += waves[i].bx1(x);
@@ -170,6 +166,17 @@ namespace user {
       real_t val = ZERO;
       for (int i = 0; i < N; ++i) val += waves[i].bx3(x);
       return val + 1.0;
+    }
+    // Add Ez to make E.B = 0
+    Inline auto ez(const coord_t<D>& x) const -> real_t {
+      real_t eperp_dot_bperp = ZERO;
+      for (int i = 0; i < N; ++i) {
+        eperp_dot_bperp += waves[i].ex1(x) * waves[i].bx1(x) +
+               waves[i].ex2(x) * waves[i].bx2(x);
+      }
+      real_t Bz = bx3(x);
+      real_t val = (Bz != ZERO) ? -eperp_dot_bperp / Bz : ZERO;
+      return val;
     }
   }; // struct InitFields
 
@@ -191,11 +198,6 @@ namespace user {
       out[i].k[2]      = constant::TWO_PI * wave_kzs[i] / Lz;
       out[i].phase     = constant::TWO_PI * wave_phases[i];
       out[i].amplitude = wave_amps[i];
-
-      // Print to output what wave, wavevector, amplitude, and phase were set for each wave
-      std::cout << "Wave " << i << ": Type = " << ((out[i].type == WaveEntry<D>::Type::FMS) ? "FMS" : "AW")
-                << ", k = (" << out[i].k[0] << ", " << out[i].k[1] << ", " << out[i].k[2] << ")"
-                << ", amplitude = " << out[i].amplitude << ", phase = " << out[i].phase << std::endl;
     }
   }
 
@@ -218,6 +220,7 @@ namespace user {
     static constexpr int N_WAVES = 3;
 
     InitFields<D, N_WAVES>      init_flds;
+    
 
   PGen(const SimulationParams& p, Metadomain<S, M>& m)
     : params { p }
